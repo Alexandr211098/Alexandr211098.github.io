@@ -58,6 +58,9 @@ input,select{font-size:16px;width:140px}
 .rr{margin:12px 0}.rr b{display:block;font-size:22px;margin-bottom:6px}
 .bars{display:flex;gap:6px;height:100px;align-items:flex-end;margin-bottom:6px}.bars div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}.bars i{width:100%;border-radius:8px 8px 3px 3px;min-height:2px}.bars small{color:var(--t2);font-size:11px}
 .ach{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border-radius:99px;background:var(--in);border:1px solid var(--gb);font-size:13px}
+.progress{height:8px;margin:10px 0 6px;overflow:hidden;border-radius:99px;background:var(--in);border:1px solid var(--gb)}.progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#34d399,#2f7bff);transition:width .3s ease}.progress-meta{display:flex;justify-content:space-between;gap:8px}
+.exbtn{width:100%;padding:9px 0;text-align:left;display:flex;justify-content:space-between;gap:10px;border:0;border-top:1px solid var(--gb);border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none}.exbtn:hover{color:var(--ac)}
+.demo-gif{display:block;width:min(280px,100%)!important;max-height:42dvh;object-fit:contain;background:var(--in);margin:8px auto 12px!important}.demo-close{float:right;padding:5px 10px;font-size:13px}.demo-link{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border:1px solid var(--gb);border-radius:14px;background:var(--in);color:var(--tx);text-decoration:none}.demo-credit{margin-top:10px}
 </style></head><body>
 <div class="bl"></div><div class="bl"></div><div class="bl"></div>
 <div class="app">
@@ -145,6 +148,11 @@ function calc(p){
  const pr=p.w*1.8,fat=kc*.27/9;
  return{bmr:Math.round(bmr),tdee:Math.round(tdee),kc:Math.round(kc),pr:Math.round(pr),f:Math.round(fat),c:Math.round(Math.max(0,(kc-pr*4-fat*9)/4))};
 }
+function progressStats(d){
+ const from=ymd(mon(d)),to=ymd(add(mon(d),6)),keys=Object.keys(S.done);
+ const done=keys.filter(k=>k>=from&&k<=to).length;
+ return{done,goal:Math.max(1,Math.min(5,+S.p.pw||3)),total:keys.length};
+}
 
 /* ───── рецепты: TheMealDB (открытая база) + офлайн-запас ───── */
 const API="https://www.themealdb.com/api/json/v1/1/",SL=["Завтрак","Обед","Ужин","Перекус"],cache={};
@@ -159,135 +167,36 @@ async function getMeals(kind,d,sh){
 function fbMeals(d,sh){const r=rng(seed(d)*100+sh+1);return SL.map((n,i)=>{const x=FB[i*3+Math.floor(r()*3)];return{n,name:x[0],kc:x[1],pr:x[2]}})}
 let TR={},mtok=0;try{TR=JSON.parse(localStorage.fctr||"{}")}catch(e){}
 const saveTR=()=>{try{const k=Object.keys(TR);if(k.length>300)k.slice(0,100).forEach(x=>delete TR[x]);localStorage.fctr=JSON.stringify(TR)}catch(e){}};
-const pieces=(s,n)=>{const o=[];let c="";for(const l of s.replace(/\r/g,"").split(/\n+/).flatMap(l=>l.length>n?(l.match(new RegExp(".{1,"+n+"}(\\s|$)","g"))||[l]):[l])){if(c&&(c+"\n"+l).length>n){o.push(c);c=""}c+=(c?"\n":"")+l}if(c)o.push(c);return o};
-async function tchunk(t,l){
- try{const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl="+l+"&dt=t&q="+encodeURIComponent(t));return(await r.json())[0].map(x=>x[0]).join("")}catch(e){}
- const o=[];for(const p of pieces(t,450)){const j=await(await fetch("https://api.mymemory.translated.net/get?langpair=en|"+l+"&q="+encodeURIComponent(p))).json();if(j.responseStatus!=200)throw 0;o.push(j.responseData.translatedText)}return o.join("\n")
-}
-async function tr(t){
- const l=S.p.lang||"ru";if(!t||!t.trim()||l=="en")return t;
- const k=l+"|"+t;if(TR[k])return TR[k];
- const o=[];for(const p of pieces(t,900))o.push(await tchunk(p,l));
- TR[k]=o.join("\n");saveTR();return TR[k];
-}
-async function recipe(id){
- const my=++mtok;openModal('<div class="sk">Загружаю рецепт…</div>');
- let m;try{m=(await jf("lookup.php?i="+id)).meals[0]}catch(e){return openModal("<p>Не удалось загрузить рецепт. Проверьте интернет.</p>")}
- const ing=[];for(let i=1;i<=20;i++){const a=(m["strIngredient"+i]||"").trim();if(a)ing.push(((m["strMeasure"+i]||"").trim()+" "+a).trim())}
- const al=(S.p.alg||[]).filter(a=>AL[a].some(w=>ing.join(" ").toLowerCase().includes(w)));const orig={title:m.strMeal,ing:ing.join("\n"),ins:m.strInstructions||""};let T=null;
- const show=(o,n)=>{if(my!=mtok)return;
-  openModal(`<img src="${esc(m.strMealThumb)}" alt=""><h2>${esc(o.title)}</h2><div class="sub">${esc(m.strCategory)} · ${esc(m.strArea)} · TheMealDB</div>${al.length?'<p style="color:#f87171">⚠ Возможен аллерген: '+al.join(", ")+"</p>":""}<div class="row">${n=="tr"?'<button id="tg">Показать оригинал</button>':n=="orig"?'<button id="tg">Показать перевод</button>':n=="wait"?'<span class="sub">Перевожу…</span>':""}</div><h3>Ингредиенты</h3>${o.ing.split("\n").map(x=>'<div class="ex"><span>'+esc(x)+'</span></div>').join("")}<h3>Приготовление</h3><p style="white-space:pre-line;line-height:1.5">${esc(o.ins)}</p>${n=="fail"?'<p class="sub">Не удалось перевести — показан оригинал.</p>':""}`);
-  const b=$("#tg");if(b)b.onclick=()=>show(n=="tr"?orig:T,n=="tr"?"orig":"tr")};
- if((S.p.lang||"ru")=="en")return show(orig,"en");
- show(orig,"wait");
- try{T={title:await tr(orig.title),ing:await tr(orig.ing),ins:await tr(orig.ins)};show(T,"tr")}catch(e){show(orig,"fail")}
-}
-function openModal(h){$("#modal").innerHTML='<div onclick="if(event.target==this)this.parentNode.innerHTML=\'\'"><div class="box">'+h+'</div></div>'}
-
-/* ───── интерфейс ───── */
-let sel=today,vm=new Date(today.getFullYear(),today.getMonth(),1,12),shuf={},tok=0;
-function entry(d){const k=ymd(d);return S.done[k]?{t:"w",...S.done[k],done:1}:S.busy[k]?{t:"busy",...S.busy[k]}:S.plan[k]||{t:"none"}}
-function renderCal(){
- const e=entry(sel),lab=WD[sel.getDay()]+", "+sel.getDate()+" "+MG[sel.getMonth()];
- if(S.ui.c){$("#cal").innerHTML=`<div class="ch"><span style="text-align:left">📅 ${lab}</span><button data-c>⌃ Календарь</button></div>`;return}
- const f=mon(vm),cells=[];
- for(let i=0;i<42;i++){const d=add(f,i),e2=entry(d),k2=ymd(d),col=e2.t=="w"?CL[e2.i]:e2.t=="busy"?CL.busy:e2.t=="rest"?CL.rest:"transparent";
-  const miss=e2.t=="w"&&d<today&&!e2.done;
-  cells.push(`<button class="c${d.getMonth()!=vm.getMonth()?" o":""}${k2==ymd(today)?" t":""}${k2==ymd(sel)?" s":""}${e2.done?" d":""}" data-k="${k2}">${d.getDate()}<i style="background:${col};opacity:${miss?.3:1}"></i></button>`)}
- $("#cal").innerHTML=`<div class="ch"><button data-m="-1">‹</button><span>${MN[vm.getMonth()]} ${vm.getFullYear()}</span><button data-m="1">›</button><button data-c>свернуть ⌄</button></div><div class="cg">${WS.map(w=>'<span class="w">'+w+'</span>').join("")}${cells.join("")}</div><div class="sub" style="margin-top:6px;text-align:center">${lab}</div><div class="ca"><button data-a="busy">Занят</button><button data-a="free">Свободен</button><button data-a="done">${e.done?"↩ Снять":"✔ Готово"}</button></div>`;
-}
-function renderDay(){
- const d=sel,e=entry(d),k=ymd(d),isT=k==ymd(today),kind=e.t=="w"?e.i:"rest",t=++tok;
- $("#dt").textContent=WD[d.getDay()]+", "+d.getDate()+" "+MG[d.getMonth()];
- $("#hi").textContent=isT?"Сегодня":WD[d.getDay()][0].toUpperCase()+WD[d.getDay()].slice(1);
- let h="";
- const acts="";
- if(e.t=="w"){
-  h+=`<div class="glass card"><span class="pill" style="background:${CL[e.i]}">${NM[e.i]}${e.done?" · ✓":""}</span><h2 style="margin-top:8px">${e.f}</h2><div class="sub">~${DUR[e.i]} мин · усилие ${RPE[e.i]} из 10 · разминка и заминка по 5–8 мин</div>${workout(e,d).map(x=>`<div class="ex"><span>${esc(x[0])}</span><span>${esc(x[1])}</span></div>`).join("")}${acts}</div>`;
-  h+=`<div class="glass card"><h2>Восстановление</h2><div class="sub">Не менее <b>${RH[e.i]} ч</b> до следующей тренировки. Сон 7–9 ч, вода 2–2,5 л, лёгкая растяжка вечером.${e.i=="hard"?" Белок в течение 2 часов после тренировки.":""}</div></div>`;
- }else if(e.t=="busy"){
-  h+=`<div class="glass card"><span class="pill" style="background:${CL.busy}">${e.kind=="shift"?"Суточная смена":"Занят"}</span><h2 style="margin-top:8px">Тренировки нет</h2><div class="sub">${e.kind=="shift"?"Накануне — только лёгкая нагрузка, на следующий день после смены — отдых и сон. Еду возьмите в контейнерах.":esc(e.note||"")+" График остальных дней подстроен."}</div>${acts}</div>`;
- }else{
-  const R={shift:"Восстановление после суточной смены: выспитесь, прогулка и растяжка.",rec:"Мышцы восстанавливаются после прошлой тренировки — именно сейчас они растут.",quota:"Недельная норма тренировок уже выполнена.",free:"День отдыха по плану: прогулка, мобильность, сон."};
-  h+=`<div class="glass card"><span class="pill" style="background:${CL.rest}">Отдых</span><h2 style="margin-top:8px">День восстановления</h2><div class="sub">${e.t=="none"?"План на эту дату ещё не построен (горизонт — 5 недель).":R[e.r]||R.free}</div>${acts}</div>`;
- }
- const nx=Object.keys(S.plan).sort().find(x=>x>k&&S.plan[x].t=="w");
- if(nx&&e.t!="none"){const n=pd(nx),v=S.plan[nx];h+=`<div class="sub" style="padding:0 8px">Следующая тренировка: ${WD[n.getDay()]}, ${n.getDate()} ${MG[n.getMonth()]} — ${NM[v.i].toLowerCase()} (${v.f})</div>`}
- const T=S.ui.t||"plan";
- if(T=="food"){$("#main").innerHTML=foodView(d,kind,e);if(e.t!="none")loadMeals(kind,d,t);return}
- if(T=="stats"){$("#main").innerHTML=statsView();return}
- $("#main").innerHTML=h;
-}
-async function loadMeals(kind,d,t){
- const sh=shuf[ymd(d)]||0;let html,src;
- try{const m=await getMeals(kind,d,sh);
-  html=m.map(x=>`<div class="meal" data-id="${esc(x.id)}"><img src="${esc(x.img)}/preview" alt="" loading="lazy"><div><small>${x.n} · ${esc(x.c)}</small><b>${esc(x.name)}</b><small>нажмите — рецепт</small></div></div>`).join("");
-  src="Рецепты: TheMealDB — открытая база (названия и рецепты переводятся автоматически).";
- }catch(e){
-  html=fbMeals(d,sh).map(x=>`<div class="meal" style="cursor:default"><div class="ph">🍽</div><div><small>${x.n}</small><b>${esc(x.name)}</b><small>~${x.kc} ккал · белок ${x.pr} г</small></div></div>`).join("");
-  src="Нет доступа к базе рецептов — показаны встроенные идеи. Подключитесь к интернету и нажмите «Другие идеи».";
- }
- if(t!=tok)return;
- const ml=$("#ml");if(!ml)return;ml.className="";ml.innerHTML=html;$("#src").textContent=src;
- document.querySelectorAll(".meal[data-id] b").forEach(async b=>{try{const x=await tr(b.textContent);if(t==tok)b.textContent=x}catch(e){}});
-}
-function refresh(){document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t==(S.ui.t||"plan")));renderCal();renderDay()}
-$("#tabs").onclick=e=>{const b=e.target.closest("[data-t]");if(b){S.ui.t=b.dataset.t;save();refresh()}};
-function act(a){
- const k=ymd(sel);
- if(a=="done"){
-  if(S.done[k])delete S.done[k];
-  else{const e=S.plan[k];if(sel>today||!e||e.t!="w")return alert("Отметить можно только запланированную сегодняшнюю или прошедшую тренировку.");S.done[k]={i:e.i,f:e.f}}
- }else{
-  if(sel<today)return alert("Прошедшие дни менять нельзя.");
-  if(S.done[k])return alert("В этот день уже отмечена тренировка.");
-  if(a=="free")delete S.busy[k];
-  else{const sh=confirm("Это суточная смена или занятость на весь день?\nОК — да (накануне будет лёгкая тренировка, после — отдых).\nОтмена — нет, занят лишь частично.");S.busy[k]={kind:sh?"shift":"busy",note:sh?"Суточная смена / весь день":(prompt("Чем занят этот день?","Занят")||"Занят")}}
- }
- build();refresh();
-}
-$("#main").addEventListener("click",e=>{
- const b=e.target.closest("[data-a]");if(b)return act(b.dataset.a);
- if(e.target.closest("#rf")){const k=ymd(sel);shuf[k]=(shuf[k]||0)+1;return renderDay()}
- const m=e.target.closest(".meal[data-id]");if(m)return recipe(m.dataset.id);
- const w=e.target.closest("[data-w]");if(w){const l=getL(sel);l.w=Math.max(0,l.w+ +w.dataset.w);setL(sel,l);return renderDay()}
- const ad=e.target.closest("[data-add]");if(ad)return addProd(ad.dataset.add);
- const dl=e.target.closest("[data-del]");if(dl){const[mm,i]=dl.dataset.del.split("|"),l=getL(sel);l.m[mm].splice(+i,1);setL(sel,l);renderDay()}
-});
-$("#cal").addEventListener("click",e=>{
- const a=e.target.closest("[data-a]");if(a)return act(a.dataset.a);
- if(e.target.closest("[data-c]")){S.ui.c^=1;save();return renderCal()}
- const m=e.target.closest("[data-m]");if(m){vm=new Date(vm.getFullYear(),vm.getMonth()+ +m.dataset.m,1,12);return renderCal()}
- const c=e.target.closest("[data-k]");if(c){sel=pd(c.dataset.k);if(sel.getMonth()!=vm.getMonth())vm=new Date(sel.getFullYear(),sel.getMonth(),1,12);refresh()}
-});
-/* профиль */
-$("#st").onclick=()=>{
- const p=S.p,o=(a,v)=>a.map(x=>`<option${x==v?" selected":""}>${x}</option>`).join(""),LG={ru:"Русский",uk:"Українська",de:"Deutsch",es:"Español",fr:"Français",en:"English (оригинал)"};
- openModal(`<h2>Профиль и цели</h2>
- <label>Цель<select id="p_goal">${o(Object.keys(REPS),p.goal)}</select></label>
- <label>Уровень<select id="p_level">${o(["Новичок","Средний","Продвинутый"],p.level)}</select></label>
- <label>Тренировок в неделю<input id="p_pw" type="number" min="1" max="5" value="${p.pw}"></label>
- <label>Пол<select id="p_sex">${o(["М","Ж"],p.sex)}</select></label>
- <label>Возраст<input id="p_age" type="number" value="${p.age}"></label>
- <label>Рост, см<input id="p_h" type="number" value="${p.h}"></label>
- <label>Вес, кг<input id="p_w" type="number" value="${p.w}"></label>
- <label>Язык рецептов<select id="p_lang">${Object.entries(LG).map(([k,v])=>`<option value="${k}"${k==p.lang?" selected":""}>${v}</option>`).join("")}</select></label>
- <div class="row"><button id="p_ok" style="flex:1">Сохранить и перестроить план</button></div>
- <div class="row"><button id="p_ob" style="flex:1">🎯 Цели, активность и питание</button></div>
- <div class="row"><button id="p_ex" style="flex:1">⬇ Копия данных</button><button id="p_im" style="flex:1">⬆ Загрузить копию</button></div>
- <input id="p_f" type="file" accept=".json" hidden>
- <p class="sub">Профиль, график занятости и отметки хранятся на этом устройстве, в браузере, и сохраняются автоматически. Копия данных пригодится при смене браузера или очистке истории.</p>`);
- $("#p_ok").onclick=()=>{
-  const n=id=>+$("#p_"+id).value,pw=n("pw");
-  if(!(pw>=1&&pw<=5&&n("age")>0&&n("h")>0&&n("w")>0))return alert("Проверьте значения (тренировок в неделю: 1–5).");
-  Object.assign(S.p,{goal:$("#p_goal").value,level:$("#p_level").value,pw,sex:$("#p_sex").value,age:n("age"),h:n("h"),w:n("w"),lang:$("#p_lang").value});
-  $("#modal").innerHTML="";build();refresh();
- };
- $("#p_ob").onclick=onboard;
- $("#p_ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="fitcoach-backup.json";a.click()};
- $("#p_im").onclick=()=>$("#p_f").click();
- $("#p_f").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.ui=Object.assign({c:0,t:"plan"},j.ui);$("#modal").innerHTML="";build();refresh()}catch(x){alert("Не удалось прочитать файл копии.")}};
+const DEMO_MAP={
+ "Отжимания":{q:"push-up",names:["push-up"]},
+ "Узкие отжимания":{q:"close-grip push-up",names:["close-grip push-up"]},
+ "Тяга гантели в наклоне":{q:"dumbbell bent over row",names:["dumbbell bent over row"]},
+ "Обратные отжимания от стула":{q:"triceps dip (bench leg)",names:["triceps dip (bench leg)","triceps dip (between benches)"]},
+ "Жим гантелей стоя":{q:"standing dumbbell press",names:["dumbbell standing overhead press"]},
+ "Подтягивания / тяга резины":{q:"pull-up",names:["pull-up"]},
+ "Отжимания, ноги на возвышении":{q:"decline push-up",names:["decline push-up"]},
+ "Ягодичный мостик":{q:"glute bridge floor",names:["low glute bridge on floor"]},
+ "Румынская тяга с гантелями":{q:"dumbbell romanian deadlift",names:["dumbbell romanian deadlift"]},
+ "Подъёмы на носки":{q:"standing calf raise",names:["bodyweight standing calf raise"]},
+ "Приседания с прыжком":{q:"jump squat",names:["jump squat"]},
+ "Выпады вперёд":{q:"forward lunge",names:["forward lunge"]},
+ "Скалолаз":{q:"mountain climber",names:["mountain climber"]},
+ "Берпи":{q:"burpee",names:["burpee"]},
+ "Мёртвый жук":{q:"dead bug",names:["dead bug"]},
+ "Скручивания":{q:"crunch floor",names:["crunch floor"]},
+ "Выпад с вращением":{q:"lunge with twist",names:["lunge with twist"]}
 };
+let demoCache={};try{demoCache=JSON.parse(localStorage.fcdemos||"{}")}catch(e){}
+const normDemoName=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+function matchExerciseDemo(name,items){
+ const spec=DEMO_MAP[name];if(!spec)return null;
+ const allowed=spec.names.map(normDemoName);
+ return(items||[]).find(x=>allowed.includes(normDemoName(x.name))&&/^https:\/\/static\.exercisedb\.dev\/media\/[a-z0-9_-]+\.gif$/i.test(x.gifUrl||""))||null;
+}
+function videoSearchUrl(name){
+ return"https://www.youtube.com/results?search_query="+encodeURIComponent(name+" правильная техника выполнения");
+}
+const pieces=(s,n)=>{const o=[];let c="";for(const l of s.replace(/\r/g,"").split(/\n+/).flatMap(l=>l.length>n?(l.match(new RegExp(".{1,"+n+"(\\s|$)","g"))||[l]):[l])){if(c&&(c+"\n"+l).length>n){o.push(c);c=""}c+=(c?"\n":"")+l}if(c)o.push(c);return o};
 /* ───── питание: дневник, баланс, Open Food Facts ───── */
 const MEALS_=["Завтрак","Обед","Ужин","Перекус"],OFF="https://world.openfoodfacts.org/";
 const getL=d=>S.log[ymd(d)]||{m:{},w:0},setL=(d,l)=>{S.log[ymd(d)]=l;save()};
