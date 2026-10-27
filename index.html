@@ -296,6 +296,15 @@ function statsView(){
  ${streakCard()}
  <div class="glass card"><h2>Достижения</h2>${ACH.map(a=>`<span class="ach" style="opacity:${a[2]()?1:.4}">${a[0]} ${a[1]}</span>`).join("")}</div>`;
 }
+function renderCal(){
+ const e=entry(sel),lab=WD[sel.getDay()]+", "+sel.getDate()+" "+MG[sel.getMonth()];
+ if(S.ui.c){$("#cal").innerHTML=`<div class="ch"><span style="text-align:left">📅 ${lab}</span><button data-c>⌃ Календарь</button></div>`;return}
+ const f=mon(vm),cells=[];
+ for(let i=0;i<42;i++){const d=add(f,i),e2=entry(d),k2=ymd(d),col=e2.t=="w"?CL[e2.i]:e2.t=="busy"?CL.busy:e2.t=="rest"?CL.rest:"transparent";
+  const miss=e2.t=="w"&&d<today&&!e2.done;
+  cells.push(`<button class="c${d.getMonth()!=vm.getMonth()?" o":""}${k2==ymd(today)?" t":""}${k2==ymd(sel)?" s":""}${e2.done?" d":""}" data-k="${k2}">${d.getDate()}<i style="background:${col};opacity:${miss?.3:1}"></i></button>`)}
+ $("#cal").innerHTML=`<div class="ch"><button data-m="-1">‹</button><span>${MN[vm.getMonth()]} ${vm.getFullYear()}</span><button data-m="1">›</button><button data-c>Свернуть ⌄</button></div><div class="cg">${WS.map(w=>'<span class="w">'+w+'</span>').join("")}${cells.join("")}</div><div class="sub" style="margin-top:6px;text-align:center">${lab}</div><div class="ca"><button data-a="busy">Занят</button><button data-a="free">Свободен</button><button data-a="done">${e.done?"↩ Снять":"✔ Готово"}</button></div>`;
+}
 function renderDay(){
  const d=sel,e=entry(d),k=ymd(d),isT=k==ymd(today),kind=e.t=="w"?e.i:"rest",t=++tok;
  $("#dt").textContent=WD[d.getDay()]+", "+d.getDate()+" "+MG[d.getMonth()];
