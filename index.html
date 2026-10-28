@@ -359,7 +359,7 @@ function checkAch(silent){
  if(n.length&&!silent){openModal(`<h2>🏆 Новое достижение!</h2>${n.map(a=>"<p>"+a[0]+" "+esc(a[1])+"</p>").join("")}<div class="row"><button id="ach_ok" class="on" style="flex:1">Продолжить</button></div>`);$("#ach_ok").onclick=()=>{$("#modal").innerHTML=""}}
 }
 function prepCard(kind,d){
- const L=["Коврик","Вода 500 мл","Полотенце","Часы или таймер"];if(kind=="hard")L.push("Белок или перекус после тренировки");
+ const L=["Коврик","Вода (500+ мл)","Полотенце","Шейкер","Добавки (протеин и др.)","Спортивная форма","Обувь","Клубная карта / пропуск","Часы или таймер"];if(kind==="hard")L.push("Белок или перекус после тренировки");
  const c=(S.prep||{})[ymd(d)]||[];
  return `<div class="glass card"><h2>Подготовка</h2>${L.map((x,i)=>`<label><span>${x}</span><input type="checkbox" data-prep="${i}" style="width:auto"${c.includes(i)?" checked":""}></label>`).join("")}</div>`;
 }
