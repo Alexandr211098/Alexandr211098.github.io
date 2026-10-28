@@ -7,10 +7,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
-const FB_CONFIG={apiKey:"AIzaSyB_vMeVMSbaV61wxK0KMYnoopw5pYqHExk",authDomain:"fitcoach-ab380.firebaseapp.com",projectId:"fitcoach-ab380",storageBucket:"fitcoach-ab380.firebasestorage.app",messagingSenderId:"246030637344",appId:"1:246030637344:web:50aaf28574b51188e25f45"};
-try{firebase.initializeApp(FB_CONFIG)}catch(e){}
-const fbAuth=firebase.auth(),fbDB=firebase.firestore();
-fbAuth.languageCode="ru";
+let fbAuth=null,fbDB=null;
+try{firebase.initializeApp({apiKey:"AIzaSyB_vMeVMSbaV61wxK0KMYnoopw5pYqHExk",authDomain:"fitcoach-ab380.firebaseapp.com",projectId:"fitcoach-ab380",storageBucket:"fitcoach-ab380.firebasestorage.app",messagingSenderId:"246030637344",appId:"1:246030637344:web:50aaf28574b51188e25f45"});fbAuth=firebase.auth();fbDB=firebase.firestore();fbAuth.languageCode="ru"}catch(e){}
 </script>
 <style>
 :root{color-scheme:light;--tx:#10223a;--t2:#4b5d78;--g:rgba(255,255,255,.4);--gb:rgba(255,255,255,.7);--hl:rgba(255,255,255,.9);--sh:0 10px 30px rgba(40,70,120,.18);--bg:linear-gradient(160deg,#cfe6ff,#f1e4ff 55%,#ffe6d6);--b1:#7cc4ff;--b2:#c79bff;--b3:#ffb48a;--ac:#2f7bff;--in:rgba(255,255,255,.55);--sd:#f1ecff}
@@ -73,7 +71,7 @@ input,select{font-size:16px;width:140px}
 </style></head><body>
 <div class="bl"></div><div class="bl"></div><div class="bl"></div>
 <div class="app">
-<header><div><div class="sub" id="dt"></div><h1 id="hi"></h1></div><div><button class="ib glass" id="th" title="Тема">◐</button><button class="ib glass" id="st" title="Профиль">⚙</button><button class="ib glass" id="authBtn" title="Войти">👤</button><button class="ib glass" id="syncBtn" title="Синхронизация" style="display:none">🔄</button></div></header>
+<header><div><div class="sub" id="dt"></div><h1 id="hi"></h1></div><div><button class="ib glass" id="th" title="Тема">◐</button><button class="ib glass" id="st" title="Профиль">⚙</button><button class="ib glass" id="authBtn" title="Войти через Google">👤</button></div></header>
 <nav id="tabs" class="glass"><button data-t="plan">🏋 План</button><button data-t="food">🍽 Питание</button><button data-t="stats">📊 Итоги</button></nav>
 <main id="main"><noscript><div class="glass card"><h2>Скрипты отключены</h2><div class="sub">Быстрый просмотр файла не запускает JavaScript. Откройте приложение в браузере (Safari, Chrome) — например, разместив файл на любом хостинге статических страниц.</div></div></noscript></main>
 <section class="glass cal" id="cal"></section>
@@ -96,96 +94,31 @@ const LIB={"Верх тела":[["Отжимания",0],["Узкие отжим
 "Всё тело":[["Приседания + жим гантелей",0],["Отжимания",0],["Тяга гантелей",0],["Выпады вперёд",0],["Планка",0],["Скалолаз",1],["Румынская тяга + тяга к поясу",1],["Берпи",2]],
 "Кор и мобильность":[["Планка",0],["Боковая планка",0],["Мёртвый жук",0],["Подъём ног лёжа",0],["Скручивания",0],["Кошка–корова",0],["Выпад с вращением",0],["Поза голубя",0]]};
 const today=new Date();today.setHours(12,0,0,0);
-const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|s)^t;return((t^t>>>14)>>>0)/4294967296};
+const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const seed=d=>d.getFullYear()*372+d.getMonth()*31+d.getDate();
-
-/* ───── Firebase auth + storage ───── */
-let FB_USER=null,FB_READY=false;
-const LS_KEY="fc",LS_TR="fctr",LS_DEMOS="fcdemos",LS_FB="fcfb";
-function fbUid(){return FB_USER?FB_USER.uid:"local"}
-function fbRef(path){return fbDB.collection("users").doc(fbUid()).collection(path)}
-async function fbLoadDoc(path,key){
- try{const d=await fbRef(path).doc(key).get();return d.exists?d.data():null}catch(e){return null}
-}
-async function fbSaveDoc(path,key,data){
- try{await fbRef(path).doc(key).set(data,{merge:true})}catch(e){}
-}
-async function fbLoadAll(uid){
- try{const snap=await fbDB.collection("users").doc(uid).get();return snap.exists?snap.data():null}catch(e){return null}
-}
-async function fbSaveAll(uid,data){
- try{await fbDB.collection("users").doc(uid).set(data,{merge:true})}catch(e){}
-}
-function lsLoad(key,fallback){try{return JSON.parse(localStorage[key]||"null")||fallback}catch(e){return fallback}}
-function lsSave(key,data){try{localStorage[key]=JSON.stringify(data)}catch(e){}};
-async function cloudSync(dir){
- if(!FB_USER)return;
- if(dir=="up")await fbSaveAll(FB_USER.uid,S);
- else if(dir=="down"){const d=await fbLoadAll(FB_USER.uid);if(d)S=Object.assign(def(),d)}
- else{
-  const local=lsLoad(LS_KEY,null),cloud=await fbLoadAll(FB_USER.uid);
-  if(!cloud){await fbSaveAll(FB_USER.uid,S);return}
-  if(!local){S=Object.assign(def(),cloud);save();return}
-  const lk=Object.keys(local).filter(k=>!["p","ui"].includes(k)).sort(),ck=Object.keys(cloud).filter(k=>!["p","ui"].includes(k)).sort();
-  const lm=lk[lk.length-1]||"",cm=ck[ck.length-1]||"";
-  if(lm>=cm){S=Object.assign(def(),cloud,local);S.p=Object.assign(def().p,cloud.p||{},local.p||{});S.ui=Object.assign({c:0,t:"plan"},cloud.ui||{},local.ui||{})}
-  else{S=Object.assign(def(),local,cloud);S.p=Object.assign(def().p,local.p||{},cloud.p||{});S.ui=Object.assign({c:0,t:"plan"},local.ui||{},cloud.ui||{})}
-  save();
- }
-}
-function wrapLS(key,setter,fallback){
- return{get:()=>S[key]!==undefined?S[key]:fallback,set:(v)=>{S[key]=v;save()}};
-}
-async function migrateLocalToCloud(){
- if(!FB_USER)return;
- const local=lsLoad(LS_KEY,null);if(!local)return;
- const cloud=await fbLoadAll(FB_USER.uid);if(cloud&&Object.keys(cloud).length)return;
- const payload={...local};
- if(local.p)payload.p=Object.assign(def().p,local.p);
- if(local.ui)payload.ui=Object.assign({c:0,t:"plan"},local.ui);
- await fbSaveAll(FB_USER.uid,payload);
-}
-function initAuth(){
- FB_READY=true;
- fbAuth.onAuthStateChanged(async u=>{
-  FB_USER=u;
-  $("#authBtn").textContent=u?"👤":"👤";
-  $("#authBtn").title=u?"Войти как "+((u.displayName||u.email||u.phoneNumber)||"пользователь"):"Войти";
-  if(u){
-   $("#syncBtn").style.display="";
-   await migrateLocalToCloud();
-   await cloudSync("down");
-  }else{
-   $("#syncBtn").style.display="none";
-  }
-  build();refresh();
- });
-}
-$("#authBtn").onclick=async()=>{
- if(FB_USER){
-  try{await fbAuth.signOut()}catch(e){}
-  S=def();save();
-  build();refresh();return;
- }
- const prov=confirm("OK — Google\nОтмена — Яндекс").then(async ok=>{
-  try{
-   if(ok){await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
-   else{await fbAuth.signInWithPopup(new firebase.auth.OAuthProvider("yandex.ru"))}
-  }catch(e){alert("Не удалось войти: "+e.message)}
- });
-};
-$("#syncBtn").onclick=async()=>{
- if(!FB_USER)return;
- $("#syncBtn").textContent="⏳";
- await cloudSync("up");
- $("#syncBtn").textContent="🔄";
-};
 
 /* ───── данные ───── */
 const def=()=>({p:{goal:"Общая форма",level:"Новичок",pw:3,sex:"М",age:30,h:175,w:75,lang:"ru",tw:75,rate:.5,act:1.375,diet:"Без ограничений",alg:[],ob:0},busy:{},done:{},plan:{},start:ymd(today),ui:{c:0,t:"plan"},log:{},feedback:{},ch:{},prep:{},rem:{on:0,t:"18:00"},best:0});
 let S=def(),okS=true;
-try{const j=lsLoad(LS_KEY,null);if(j){S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.ui=Object.assign({c:0,t:"plan"},j.ui)}}catch(e){}
-const save=()=>{try{lsSave(LS_KEY,S);if(FB_USER&&FB_READY){fbSaveAll(FB_USER.uid,S).catch(()=>{})}}catch(e){okS=false}};
+try{const j=JSON.parse(localStorage.fc||"{}");S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.ui=Object.assign({c:0,t:"plan"},j.ui)}catch(e){}
+const fixS=j=>{const x=Object.assign(def(),j);x.p=Object.assign(def().p,j.p);x.ui=Object.assign({c:0,t:"plan"},j.ui);return x};
+let FB_USER=null,cloudT=0,cloudOK=false;
+const saveLocal=()=>{try{localStorage.fc=JSON.stringify(S)}catch(e){okS=false}};
+const save=()=>{S.mt=Date.now();saveLocal();if(FB_USER&&cloudOK){clearTimeout(cloudT);cloudT=setTimeout(cloudPush,1500)}};
+async function cloudPush(){try{await fbDB.collection("users").doc(FB_USER.uid).set({t:S.mt||Date.now(),data:JSON.stringify(S)})}catch(e){}}
+async function cloudPull(){
+ const r=await fbDB.collection("users").doc(FB_USER.uid).get();
+ if(r.exists&&(r.data().t||0)>(S.mt||0)){S=fixS(JSON.parse(r.data().data));saveLocal()}else await cloudPush();
+ cloudOK=true;
+}
+function initAuth(){
+ const b=$("#authBtn");if(!fbAuth){b.style.display="none";return}
+ fbAuth.getRedirectResult().catch(e=>alert("Не удалось войти: "+e.message));
+ fbAuth.onAuthStateChanged(async u=>{
+  FB_USER=u;cloudOK=false;b.classList.toggle("on",!!u);b.title=u?"Аккаунт: "+(u.email||u.displayName||"")+" — нажмите, чтобы выйти":"Войти через Google";
+  if(u){try{await cloudPull();build();refresh()}catch(e){alert("Не удалось синхронизировать: "+e.message)}}
+ });
+}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 /* ───── планировщик ───── */
@@ -251,8 +184,8 @@ async function getMeals(kind,d,sh){
  return Promise.all(SL.map(async(n,i)=>{const x=pk(await cat(cs[i]));return{n,id:x.idMeal,name:x.strMeal,img:x.strMealThumb,c:cs[i]}}));
 }
 function fbMeals(d,sh){const r=rng(seed(d)*100+sh+1);return SL.map((n,i)=>{const x=FB[i*3+Math.floor(r()*3)];return{n,name:x[0],kc:x[1],pr:x[2]}})}
-let TR={},mtok=0;try{TR=lsLoad(LS_TR,{})}catch(e){}
-const saveTR=()=>{lsSave(LS_TR,TR)};
+let TR={},mtok=0;try{TR=JSON.parse(localStorage.fctr||"{}")}catch(e){}
+const saveTR=()=>{try{const k=Object.keys(TR);if(k.length>300)k.slice(0,100).forEach(x=>delete TR[x]);localStorage.fctr=JSON.stringify(TR)}catch(e){}};
 const pieces=(s,n)=>{const o=[];let c="";for(const l of s.replace(/\r/g,"").split(/\n+/).flatMap(l=>l.length>n?(l.match(new RegExp(".{1,"+n+"}(\\s|$)","g"))||[l]):[l])){if(c&&(c+"\n"+l).length>n){o.push(c);c=""}c+=(c?"\n":"")+l}if(c)o.push(c);return o};
 async function tchunk(t,l){
  try{const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl="+l+"&dt=t&q="+encodeURIComponent(t));return(await r.json())[0].map(x=>x[0]).join("")}catch(e){}
@@ -373,7 +306,7 @@ $("#st").onclick=()=>{
  <div class="row"><button id="p_ob" style="flex:1">🎯 Цели, активность и питание</button></div>
  <div class="row"><button id="p_ex" style="flex:1">⬇ Копия данных</button><button id="p_im" style="flex:1">⬆ Загрузить копию</button></div>
  <input id="p_f" type="file" accept=".json" hidden>
- <p class="sub">Профиль, график занятости и отметки хранятся на этом устройстве, в браузере, и сохраняются автоматически. Копия данных пригодится при смене браузера или очистке истории.${FB_USER?" При входе через Google/Яндекс данные синхронизируются с облаком.":""}</p>
+ <p class="sub">Профиль, график занятости и отметки хранятся на этом устройстве, в браузере, и сохраняются автоматически. Копия данных пригодится при смене браузера или очистке истории.</p>`);
  $("#p_ok").onclick=()=>{
   const n=id=>+$("#p_"+id).value,pw=n("pw");
   if(!(pw>=1&&pw<=5&&n("age")>0&&n("h")>0&&n("w")>0))return alert("Проверьте значения (тренировок в неделю: 1–5).");
@@ -450,7 +383,7 @@ function checkAch(silent){
  if(n.length&&!silent){openModal(`<h2>🏆 Новое достижение!</h2>${n.map(a=>"<p>"+a[0]+" "+esc(a[1])+"</p>").join("")}<div class="row"><button id="ach_ok" class="on" style="flex:1">Продолжить</button></div>`);$("#ach_ok").onclick=()=>{$("#modal").innerHTML=""}}
 }
 function prepCard(kind,d){
- const L=["Коврик","Вода (500+ мл)","Полотенце","Шейкер","Добавки (протеин и др.)","Спортивная форма","Обувь","Клубная карта / пропуск","Часы или таймер"];if(kind==="hard")L.push("Белок или перекус после тренировки");
+ const L=["Коврик","Вода (500+ мл)","Полотенце","Шейкер","Добавки (протеин и др.)","Спортивная форма","Обувь","Клубная карта / пропуск","Часы или таймер"];if(kind=="hard")L.push("Белок или перекус после тренировки");
  const c=(S.prep||{})[ymd(d)]||[];
  return `<div class="glass card"><h2>Подготовка</h2>${L.map((x,i)=>`<label><span>${x}</span><input type="checkbox" data-prep="${i}" style="width:auto"${c.includes(i)?" checked":""}></label>`).join("")}</div>`;
 }
@@ -462,40 +395,30 @@ function remind(){
  S.remAt=k;save();new Notification("FitCoach: время тренировки",{body:NM[e.i]+" · "+e.f+" · ~"+DUR[e.i]+" мин"});
 }
 setInterval(remind,6e4);
-const DEMO_MAP={
-"Отжимания":{gif:"https://static.exercisedb.dev/media/arvaszz.gif",q:"push-up",names:["push-up"]},
-"Узкие отжимания":{gif:"https://static.exercisedb.dev/media/1YB40kg.gif",q:"close-grip push-up",names:["close-grip push-up"]},
-"Тяга гантели в наклоне":{gif:"https://static.exercisedb.dev/media/BJ0Hz5L.gif",q:"dumbbell bent over row",names:["dumbbell bent over row"]},
-"Обратные отжимания от стула":{gif:"https://static.exercisedb.dev/media/VuoerH0.gif",q:"triceps dip (bench leg)",names:["triceps dip (bench leg)","triceps dip (between benches)"]},
-"Жим гантелей стоя":{gif:"https://static.exercisedb.dev/media/A6wtbuL.gif",q:"standing dumbbell press",names:["dumbbell standing overhead press"]},
-"Подтягивания / тяга резины":{gif:"https://static.exercisedb.dev/media/0V2YQjW.gif",q:"pull-up",names:["pull-up"]},
-"Отжимания, ноги на возвышении":{gif:"https://static.exercisedb.dev/media/i5cEhka.gif",q:"decline push-up",names:["decline push-up"]},
-"Ягодичный мостик":{gif:"https://static.exercisedb.dev/media/u0cNiij.gif",q:"glute bridge floor",names:["low glute bridge on floor"]},
-"Румынская тяга с гантелями":{gif:"https://static.exercisedb.dev/media/rR0LJzx.gif",q:"dumbbell romanian deadlift",names:["dumbbell romanian deadlift"]},
-"Подъёмы на носки":{gif:"https://static.exercisedb.dev/media/bJYHBIN.gif",q:"standing calf raise",names:["bodyweight standing calf raise"]},
-"Приседания с прыжком":{gif:"https://static.exercisedb.dev/media/LIlE5Tn.gif",q:"jump squat",names:["jump squat"]},
-"Выпады вперёд":{gif:"https://static.exercisedb.dev/media/kMzUs9Y.gif",q:"forward lunge",names:["forward lunge"]},
-"Скалолаз":{gif:"https://static.exercisedb.dev/media/RJgzwny.gif",q:"mountain climber",names:["mountain climber"]},
-"Берпи":{gif:"https://static.exercisedb.dev/media/dK9394r.gif",q:"burpee",names:["burpee"]},
-"Мёртвый жук":{gif:"https://static.exercisedb.dev/media/iny3m5y.gif",q:"dead bug",names:["dead bug"]},
-"Скручивания":{gif:"https://static.exercisedb.dev/media/TFqbd8t.gif",q:"crunch floor",names:["crunch floor"]},
-"Выпад с вращением":{gif:"https://static.exercisedb.dev/media/K9VL0Jq.gif",q:"lunge with twist",names:["lunge with twist"]}};
-let demoCache={};try{demoCache=lsLoad(LS_DEMOS,{})}catch(e){}
+const DEMO_MAP={"Отжимания":{gif:"https://static.exercisedb.dev/media/arvaszz.gif",q:"push-up",names:["push-up"]},"Узкие отжимания":{gif:"https://static.exercisedb.dev/media/1YB40kg.gif",q:"close-grip push-up",names:["close-grip push-up"]},"Тяга гантели в наклоне":{gif:"https://static.exercisedb.dev/media/BJ0Hz5L.gif",q:"dumbbell bent over row",names:["dumbbell bent over row"]},"Обратные отжимания от стула":{gif:"https://static.exercisedb.dev/media/VuoerH0.gif",q:"triceps dip (bench leg)",names:["triceps dip (bench leg)","triceps dip (between benches)"]},"Жим гантелей стоя":{gif:"https://static.exercisedb.dev/media/A6wtbuL.gif",q:"standing dumbbell press",names:["dumbbell standing overhead press"]},"Подтягивания / тяга резины":{gif:"https://static.exercisedb.dev/media/0V2YQjW.gif",q:"pull-up",names:["pull-up"]},"Отжимания, ноги на возвышении":{gif:"https://static.exercisedb.dev/media/i5cEhka.gif",q:"decline push-up",names:["decline push-up"]},"Ягодичный мостик":{gif:"https://static.exercisedb.dev/media/u0cNiij.gif",q:"glute bridge floor",names:["low glute bridge on floor"]},"Румынская тяга с гантелями":{gif:"https://static.exercisedb.dev/media/rR0LJzx.gif",q:"dumbbell romanian deadlift",names:["dumbbell romanian deadlift"]},"Подъёмы на носки":{gif:"https://static.exercisedb.dev/media/bJYHBIN.gif",q:"standing calf raise",names:["bodyweight standing calf raise"]},"Приседания с прыжком":{gif:"https://static.exercisedb.dev/media/LIlE5Tn.gif",q:"jump squat",names:["jump squat"]},"Выпады вперёд":{gif:"https://static.exercisedb.dev/media/kMzUs9Y.gif",q:"forward lunge",names:["forward lunge"]},"Скалолаз":{gif:"https://static.exercisedb.dev/media/RJgzwny.gif",q:"mountain climber",names:["mountain climber"]},"Берпи":{gif:"https://static.exercisedb.dev/media/dK9394r.gif",q:"burpee",names:["burpee"]},"Мёртвый жук":{gif:"https://static.exercisedb.dev/media/iny3m5y.gif",q:"dead bug",names:["dead bug"]},"Скручивания":{gif:"https://static.exercisedb.dev/media/TFqbd8t.gif",q:"crunch floor",names:["crunch floor"]},"Выпад с вращением":{gif:"https://static.exercisedb.dev/media/K9VL0Jq.gif",q:"lunge with twist",names:["lunge with twist"]}};
+let demoCache={};try{demoCache=JSON.parse(localStorage.fcdemos||"{}")}catch(e){}
 const nDemo=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const matchDemo=(name,items)=>{const ok=DEMO_MAP[name].names.map(nDemo);return(items||[]).find(x=>ok.includes(nDemo(x.name))&&/^https:\/\/static\.exercisedb\.dev\/media\/[a-z0-9_-]+\.gif$/i.test(x.gifUrl||""))||null};
 async function showExerciseDemo(name){
  const my=++mtok,spec=DEMO_MAP[name],link=`<a class="demo-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent(name+" правильная техника выполнения")}" target="_blank" rel="noopener">▶ Видео-разбор техники</a>`;
- const view=(img,note)=>{if(my!=mtok)return;openModal(`<h2>${esc(name)}</h2>${img?`<img class="demo-gif" src="${esc(img)}" alt="Демонстрация: ${esc(name)}">`:""}<div class="sub">${note}</div><div class="row">${link}</div>${img?'<div class="sub demo-credit">Анимации: ExerciseDB</div>':""}`)};
+ const view=(img,note)=>{if(my!=mtok)return;openModal(`<h2>${esc(name)}</h2>${img?`<img class="demo-gif" onerror="this.style.display='none'" src="${esc(img)}" alt="Демонстрация: ${esc(name)}">`:""}<div class="sub">${note}</div><div class="row">${link}</div>${img?'<div class="sub demo-credit">Анимации: ExerciseDB</div>':""}`)};
  if(!spec)return view("","Для этого упражнения нет анимации — откройте видео с техникой.");
- if(spec.gif){demoCache[name]=spec.gif;lsSave(LS_DEMOS,demoCache);return view(spec.gif,"");}
+ if(spec.gif)return view(spec.gif,"");
  if(demoCache[name])return view(demoCache[name],"");
  view("","Ищу анимацию…");
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);let j;
   try{j=await(await fetch("https://oss.exercisedb.dev/api/v1/exercises/search?q="+encodeURIComponent(spec.q)+"&limit=10",{signal:c.signal})).json()}finally{clearTimeout(t)}
   const it=matchDemo(name,(j.data&&j.data.exercises)||j.data||[]);if(!it)throw 0;
-  demoCache[name]=it.gifUrl;lsSave(LS_DEMOS,demoCache);view(it.gifUrl,"");
+  demoCache[name]=it.gifUrl;try{localStorage.fcdemos=JSON.stringify(demoCache)}catch(e){}view(it.gifUrl,"");
  }catch(e){view("","Анимацию загрузить не удалось — используйте видео с техникой.")}
 }
+$("#authBtn").onclick=async()=>{
+ if(!fbAuth)return;
+ if(FB_USER){if(confirm("Выйти из аккаунта? Данные останутся на этом устройстве."))fbAuth.signOut();return}
+ if(!/^https?:$/.test(location.protocol))return alert("Вход работает только когда страница открыта по адресу https://… (не из файла). Разместите приложение на хостинге.");
+ const p=new firebase.auth.GoogleAuthProvider();
+ try{await fbAuth.signInWithPopup(p)}catch(e){if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code))fbAuth.signInWithRedirect(p);else if(e.code!="auth/popup-closed-by-user")alert("Не удалось войти: "+e.message)}
+};
 /* ───── настройка целей (онбординг) ───── */
 const PAL=[[1.2,"Сидячий образ жизни"],[1.375,"Лёгкая активность"],[1.55,"Умеренная активность"],[1.725,"Высокая активность"]],ALG=["Лактоза","Глютен","Орехи","Яйца","Морепродукты"];
 const AL={"Лактоза":["milk","cream","cheese","butter","yogurt","yoghurt"],"Глютен":["flour","bread","pasta","wheat","noodle","spaghetti","couscous"],"Орехи":["nut","almond","walnut","cashew","pistachio","hazelnut"],"Яйца":["egg"],"Морепродукты":["shrimp","prawn","fish","salmon","crab","squid","mussel","clam","tuna","cod"]};
@@ -521,11 +444,10 @@ function obv(){
  $("#ob_n").onclick=()=>{if(obi==1&&!o.tt)o.tw=o.w;if(obi<5){obi++;obv()}else{Object.assign(S.p,o,{ob:1});save();$("#modal").innerHTML="";build();refresh()}};
 }
 /* тема */
-const setTheme=t=>{document.documentElement.dataset.theme=t;lsSave("fct",t)};
-setTheme(lsLoad("fct",(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")));
+const setTheme=t=>{document.documentElement.dataset.theme=t;try{localStorage.fct=t}catch(e){}};
+setTheme((()=>{try{return localStorage.fct}catch(e){}})()||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"));
 $("#th").onclick=()=>setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");
-initAuth();
-build();refresh();checkAch(true);remind();
+build();refresh();checkAch(true);remind();initAuth();
 if(!S.p.ob)onboard();
 if(!okS)alert("Браузер не разрешает сохранять данные (приватный режим?). Настройки пропадут после закрытия страницы — используйте «Копия данных» в профиле.");
 </script></body></html>
