@@ -45,6 +45,9 @@ main::-webkit-scrollbar{display:none}
 #modal>div{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);z-index:9}
 #modal .box{width:min(440px,94vw);max-height:88dvh;overflow:auto;padding:18px;background:var(--g);backdrop-filter:blur(30px);border:1px solid var(--gb);border-radius:26px;box-shadow:var(--sh)}
 #modal .box img{width:100%;border-radius:16px;margin-bottom:8px}
+#authScreen{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--bg)}
+#authScreen .auth-box{width:min(380px,92vw);padding:22px;background:var(--g);backdrop-filter:blur(30px);border:1px solid var(--gb);border-radius:26px;box-shadow:var(--sh);text-align:center}
+#authScreen h2{margin:0 0 8px}.auth-sub{margin-bottom:14px}
 label{display:flex;justify-content:space-between;align-items:center;margin:8px 0;gap:10px}
 input,select{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--gb);border-radius:12px;padding:7px 10px;width:150px}
 .sk{opacity:.6}.ch span{flex:1;text-align:center}.ca{display:flex;gap:6px;margin-top:8px}.ca button{flex:1;padding:8px 2px;font-size:13px}
@@ -77,6 +80,7 @@ input,select{font-size:16px;width:140px}
 <section class="glass cal" id="cal"></section>
 </div>
 <div id="modal"></div>
+<div id="authScreen" style="display:none"><div class="auth-box"><h2>FitCoach</h2><div class="sub auth-sub">Войдите через Google, чтобы получить доступ к плану, питанию и прогрессу.</div><button class="on" id="loginBtn" style="width:100%">Войти через Google</button></div></div>
 <script>
 "use strict";
 onerror=(m,u,l)=>{document.body.insertAdjacentHTML("beforeend",'<pre style="position:fixed;top:60px;left:8px;right:8px;z-index:99;background:#fff;color:#900;padding:8px;font-size:11px;white-space:pre-wrap;border-radius:12px">Ошибка: '+m+" (строка "+l+")</pre>")};
@@ -112,12 +116,15 @@ async function cloudPull(){
  cloudOK=true;
 }
 function initAuth(){
- const b=$("#authBtn");if(!fbAuth){b.style.display="none";return}
+ const b=$("#authBtn"),l=$("#loginBtn"),a=$("#authScreen");if(!fbAuth){a.style.display="none";b.style.display="none";build();refresh();checkAch(true);remind();if(!S.p.ob)onboard();return}
  fbAuth.getRedirectResult().catch(e=>alert("Не удалось войти: "+e.message));
- fbAuth.onAuthStateChanged(async u=>{
+ const onAuth=async u=>{
   FB_USER=u;cloudOK=false;b.classList.toggle("on",!!u);b.title=u?"Аккаунт: "+(u.email||u.displayName||"")+" — нажмите, чтобы выйти":"Войти через Google";
-  if(u){try{await cloudPull();build();refresh()}catch(e){alert("Не удалось синхронизировать: "+e.message)}}
- });
+  if(u){try{await cloudPull();build();refresh();checkAch(true);remind();if(!S.p.ob)onboard()}catch(e){alert("Не удалось синхронизировать: "+e.message)}}
+  a.style.display=u?"none":"";
+ };
+ fbAuth.onAuthStateChanged(onAuth);
+ l.onclick=()=>fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code))fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());else if(e.code!="auth/popup-closed-by-user")alert("Не удалось войти: "+e.message)});
 }
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
@@ -447,7 +454,6 @@ function obv(){
 const setTheme=t=>{document.documentElement.dataset.theme=t;try{localStorage.fct=t}catch(e){}};
 setTheme((()=>{try{return localStorage.fct}catch(e){}})()||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"));
 $("#th").onclick=()=>setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");
-build();refresh();checkAch(true);remind();initAuth();
-if(!S.p.ob)onboard();
+initAuth();
 if(!okS)alert("Браузер не разрешает сохранять данные (приватный режим?). Настройки пропадут после закрытия страницы — используйте «Копия данных» в профиле.");
 </script></body></html>
