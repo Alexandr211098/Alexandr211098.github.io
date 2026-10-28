@@ -371,7 +371,24 @@ function remind(){
  S.remAt=k;save();new Notification("FitCoach: время тренировки",{body:NM[e.i]+" · "+e.f+" · ~"+DUR[e.i]+" мин"});
 }
 setInterval(remind,6e4);
-const DEMO_MAP={"Отжимания":{q:"push-up",names:["push-up"]},"Узкие отжимания":{q:"close-grip push-up",names:["close-grip push-up"]},"Тяга гантели в наклоне":{q:"dumbbell bent over row",names:["dumbbell bent over row"]},"Обратные отжимания от стула":{q:"triceps dip (bench leg)",names:["triceps dip (bench leg)","triceps dip (between benches)"]},"Жим гантелей стоя":{q:"standing dumbbell press",names:["dumbbell standing overhead press"]},"Подтягивания / тяга резины":{q:"pull-up",names:["pull-up"]},"Отжимания, ноги на возвышении":{q:"decline push-up",names:["decline push-up"]},"Ягодичный мостик":{q:"glute bridge floor",names:["low glute bridge on floor"]},"Румынская тяга с гантелями":{q:"dumbbell romanian deadlift",names:["dumbbell romanian deadlift"]},"Подъёмы на носки":{q:"standing calf raise",names:["bodyweight standing calf raise"]},"Приседания с прыжком":{q:"jump squat",names:["jump squat"]},"Выпады вперёд":{q:"forward lunge",names:["forward lunge"]},"Скалолаз":{q:"mountain climber",names:["mountain climber"]},"Берпи":{q:"burpee",names:["burpee"]},"Мёртвый жук":{q:"dead bug",names:["dead bug"]},"Скручивания":{q:"crunch floor",names:["crunch floor"]},"Выпад с вращением":{q:"lunge with twist",names:["lunge with twist"]}};
+const DEMO_MAP={
+"Отжимания":{gif:"https://static.exercisedb.dev/media/arvaszz.gif",q:"push-up",names:["push-up"]},
+"Узкие отжимания":{gif:"https://static.exercisedb.dev/media/1YB40kg.gif",q:"close-grip push-up",names:["close-grip push-up"]},
+"Тяга гантели в наклоне":{gif:"https://static.exercisedb.dev/media/BJ0Hz5L.gif",q:"dumbbell bent over row",names:["dumbbell bent over row"]},
+"Обратные отжимания от стула":{gif:"https://static.exercisedb.dev/media/VuoerH0.gif",q:"triceps dip (bench leg)",names:["triceps dip (bench leg)","triceps dip (between benches)"]},
+"Жим гантелей стоя":{gif:"https://static.exercisedb.dev/media/A6wtbuL.gif",q:"standing dumbbell press",names:["dumbbell standing overhead press"]},
+"Подтягивания / тяга резины":{gif:"https://static.exercisedb.dev/media/0V2YQjW.gif",q:"pull-up",names:["pull-up"]},
+"Отжимания, ноги на возвышении":{gif:"https://static.exercisedb.dev/media/i5cEhka.gif",q:"decline push-up",names:["decline push-up"]},
+"Ягодичный мостик":{gif:"https://static.exercisedb.dev/media/u0cNiij.gif",q:"glute bridge floor",names:["low glute bridge on floor"]},
+"Румынская тяга с гантелями":{gif:"https://static.exercisedb.dev/media/rR0LJzx.gif",q:"dumbbell romanian deadlift",names:["dumbbell romanian deadlift"]},
+"Подъёмы на носки":{gif:"https://static.exercisedb.dev/media/bJYHBIN.gif",q:"standing calf raise",names:["bodyweight standing calf raise"]},
+"Приседания с прыжком":{gif:"https://static.exercisedb.dev/media/LIlE5Tn.gif",q:"jump squat",names:["jump squat"]},
+"Выпады вперёд":{gif:"https://static.exercisedb.dev/media/kMzUs9Y.gif",q:"forward lunge",names:["forward lunge"]},
+"Скалолаз":{gif:"https://static.exercisedb.dev/media/RJgzwny.gif",q:"mountain climber",names:["mountain climber"]},
+"Берпи":{gif:"https://static.exercisedb.dev/media/dK9394r.gif",q:"burpee",names:["burpee"]},
+"Мёртвый жук":{gif:"https://static.exercisedb.dev/media/iny3m5y.gif",q:"dead bug",names:["dead bug"]},
+"Скручивания":{gif:"https://static.exercisedb.dev/media/TFqbd8t.gif",q:"crunch floor",names:["crunch floor"]},
+"Выпад с вращением":{gif:"https://static.exercisedb.dev/media/K9VL0Jq.gif",q:"lunge with twist",names:["lunge with twist"]}};
 let demoCache={};try{demoCache=JSON.parse(localStorage.fcdemos||"{}")}catch(e){}
 const nDemo=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const matchDemo=(name,items)=>{const ok=DEMO_MAP[name].names.map(nDemo);return(items||[]).find(x=>ok.includes(nDemo(x.name))&&/^https:\/\/static\.exercisedb\.dev\/media\/[a-z0-9_-]+\.gif$/i.test(x.gifUrl||""))||null};
@@ -379,6 +396,7 @@ async function showExerciseDemo(name){
  const my=++mtok,spec=DEMO_MAP[name],link=`<a class="demo-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent(name+" правильная техника выполнения")}" target="_blank" rel="noopener">▶ Видео-разбор техники</a>`;
  const view=(img,note)=>{if(my!=mtok)return;openModal(`<h2>${esc(name)}</h2>${img?`<img class="demo-gif" src="${esc(img)}" alt="Демонстрация: ${esc(name)}">`:""}<div class="sub">${note}</div><div class="row">${link}</div>${img?'<div class="sub demo-credit">Анимации: ExerciseDB</div>':""}`)};
  if(!spec)return view("","Для этого упражнения нет анимации — откройте видео с техникой.");
+ if(spec.gif){demoCache[name]=spec.gif;try{localStorage.fcdemos=JSON.stringify(demoCache)}catch(e){}return view(spec.gif,"");}
  if(demoCache[name])return view(demoCache[name],"");
  view("","Ищу анимацию…");
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);let j;
