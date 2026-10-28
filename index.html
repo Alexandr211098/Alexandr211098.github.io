@@ -45,11 +45,9 @@ main::-webkit-scrollbar{display:none}
 #modal>div{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);z-index:9}
 #modal .box{width:min(440px,94vw);max-height:88dvh;overflow:auto;padding:18px;background:var(--g);backdrop-filter:blur(30px);border:1px solid var(--gb);border-radius:26px;box-shadow:var(--sh)}
 #modal .box img{width:100%;border-radius:16px;margin-bottom:8px}
-#authScreen{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--bg)}
-#authScreen .auth-box{width:min(380px,92vw);padding:22px;background:var(--g);backdrop-filter:blur(30px);border:1px solid var(--gb);border-radius:26px;box-shadow:var(--sh);text-align:center}
-#authScreen h2{margin:0 0 8px}.auth-sub{margin-bottom:14px}
+#authScreen{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--bg)}#authScreen .auth-box{width:min(380px,92vw);padding:22px;background:var(--g);backdrop-filter:blur(30px);border:1px solid var(--gb);border-radius:26px;box-shadow:var(--sh);text-align:center}#authScreen h2{margin:0 0 8px}.auth-sub{margin-bottom:14px}
 label{display:flex;justify-content:space-between;align-items:center;margin:8px 0;gap:10px}
-input,select{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--gb);border-radius:12px;padding:7px 10px;width:150px}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--gb);border-radius:12px;padding:7px 10px;width:150px}
 .sk{opacity:.6}.ch span{flex:1;text-align:center}.ca{display:flex;gap:6px;margin-top:8px}.ca button{flex:1;padding:8px 2px;font-size:13px}
 html{-webkit-text-size-adjust:100%}body{overscroll-behavior:none}main{-webkit-overflow-scrolling:touch}
 button{min-height:38px;touch-action:manipulation}.c{min-height:0}
@@ -57,7 +55,7 @@ button{min-height:38px;touch-action:manipulation}.c{min-height:0}
 .app{width:100vw;padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));gap:8px}
 h1{font-size:23px}.ib{width:44px;height:44px}.card{padding:14px}.cal{padding:8px 10px 6px}
 .bl{width:260px;height:260px;filter:blur(50px);animation:none}
-input,select{font-size:16px;width:140px}
+input,select,textarea{font-size:16px}input,select{width:140px}
 #modal>div{align-items:end}#modal .box{width:100%;max-width:none;border-radius:26px 26px 0 0;max-height:90dvh;padding-bottom:max(18px,env(safe-area-inset-bottom))}
 .meal img,.meal .ph{width:52px;height:52px}}
 @media(max-height:700px){.c{height:28px}}
@@ -80,7 +78,7 @@ input,select{font-size:16px;width:140px}
 <section class="glass cal" id="cal"></section>
 </div>
 <div id="modal"></div>
-<div id="authScreen" style="display:none"><div class="auth-box"><h2>FitCoach</h2><div class="sub auth-sub">Войдите через Google, чтобы получить доступ к плану, питанию и прогрессу.</div><button class="on" id="loginBtn" style="width:100%">Войти через Google</button></div></div>
+<div id="authScreen" style="display:none"><div class="auth-box"><h2>FitCoach</h2><div class="sub auth-sub">Войдите через Google, чтобы данные синхронизировались между устройствами.</div><button class="on" id="loginBtn" style="width:100%">Войти через Google</button><button id="skipBtn" style="width:100%;margin-top:8px">Продолжить без входа</button></div></div>
 <script>
 "use strict";
 onerror=(m,u,l)=>{document.body.insertAdjacentHTML("beforeend",'<pre style="position:fixed;top:60px;left:8px;right:8px;z-index:99;background:#fff;color:#900;padding:8px;font-size:11px;white-space:pre-wrap;border-radius:12px">Ошибка: '+m+" (строка "+l+")</pre>")};
@@ -89,7 +87,9 @@ const pd=s=>{const[a,b,c]=s.split("-");return new Date(+a,b-1,+c,12)},add=(d,n)=
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const WD=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"],WS=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const MN=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],MG=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-const LV=["easy","medium","hard"],NM={easy:"Лёгкая",medium:"Средняя",hard:"Тяжёлая"},CL={easy:"#34d399",medium:"#fbbf24",hard:"#f87171",rest:"#94a3b8",busy:"#60a5fa"};
+const LV=["easy","medium","hard"],NM={easy:"Лёгкая",medium:"Средняя",hard:"Тяжёлая"},CL={easy:"#34d399",medium:"#fbbf24",hard:"#f87171",rest:"#94a3b8",busy:"#60a5fa",custom:"#a78bfa"};
+const LEVEL_BASE=["novice","medium","advanced"],LEVEL_LABEL={novice:["Новичок","Новичка"],medium:["Средний","Средняя"],advanced:["Продвинутый","Продвинутая"]},LV_OLD={"Новичок":"novice","Средний":"medium","Продвинутый":"advanced"};
+const normLv=v=>LEVEL_BASE.includes(v)?v:LV_OLD[v]||"novice",levelLabel=(lv,sex)=>(LEVEL_LABEL[lv]||[lv,lv])[sex==="Ж"?1:0];
 const RH={easy:24,medium:36,hard:48},MG_={easy:1,medium:2,hard:2},DUR={easy:"30–40",medium:"45–55",hard:"60–75"},RPE={easy:"4–5",medium:"6–7",hard:"8–9"};
 const PAT={1:["medium"],2:["medium","hard"],3:["hard","easy","medium"],4:["hard","easy","medium","easy"],5:["hard","easy","medium","easy","medium"]};
 const REPS={"Набор мышц":["12–15","8–12","6–10"],"Похудение":["12–15","12–15","10–15"],"Выносливость":["15–20","15–20","12–20"],"Общая форма":["12–15","10–12","8–12"]};
@@ -102,10 +102,10 @@ const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.i
 const seed=d=>d.getFullYear()*372+d.getMonth()*31+d.getDate();
 
 /* ───── данные ───── */
-const def=()=>({p:{goal:"Общая форма",level:"Новичок",pw:3,sex:"М",age:30,h:175,w:75,lang:"ru",tw:75,rate:.5,act:1.375,diet:"Без ограничений",alg:[],ob:0},busy:{},done:{},plan:{},start:ymd(today),ui:{c:0,t:"plan"},log:{},feedback:{},ch:{},prep:{},rem:{on:0,t:"18:00"},best:0});
+const def=()=>({p:{goal:"Общая форма",level:"novice",pw:3,sex:"М",age:30,h:175,w:75,lang:"ru",tw:75,rate:.5,act:1.375,diet:"Без ограничений",alg:[],ob:0},busy:{},done:{},plan:{},start:ymd(today),ui:{c:0,t:"plan"},log:{},feedback:{},ch:{},prep:{},rem:{on:0,t:"18:00"},best:0});
 let S=def(),okS=true;
-try{const j=JSON.parse(localStorage.fc||"{}");S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.ui=Object.assign({c:0,t:"plan"},j.ui)}catch(e){}
-const fixS=j=>{const x=Object.assign(def(),j);x.p=Object.assign(def().p,j.p);x.ui=Object.assign({c:0,t:"plan"},j.ui);return x};
+try{const j=JSON.parse(localStorage.fc||"{}");S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.p.level=normLv(j.p&&j.p.level);S.ui=Object.assign({c:0,t:"plan"},j.ui)}catch(e){}
+const fixS=j=>{const x=Object.assign(def(),j);x.p=Object.assign(def().p,j.p);x.p.level=normLv(j.p&&j.p.level);x.ui=Object.assign({c:0,t:"plan"},j.ui);return x};
 let FB_USER=null,cloudT=0,cloudOK=false;
 const saveLocal=()=>{try{localStorage.fc=JSON.stringify(S)}catch(e){okS=false}};
 const save=()=>{S.mt=Date.now();saveLocal();if(FB_USER&&cloudOK){clearTimeout(cloudT);cloudT=setTimeout(cloudPush,1500)}};
@@ -115,16 +115,35 @@ async function cloudPull(){
  if(r.exists&&(r.data().t||0)>(S.mt||0)){S=fixS(JSON.parse(r.data().data));saveLocal()}else await cloudPush();
  cloudOK=true;
 }
+function openProfile(){
+ const p=S.p,ok=S.ch||{};
+ openModal(`<h2>Профиль</h2>
+  <div class="ex"><span>Уровень</span><span>${esc(levelLabel(p.level,p.sex))}</span></div>
+  <div class="ex"><span>Цель</span><span>${esc(p.goal)}</span></div>
+  <div class="ex"><span>Тренировок всего</span><span>${Object.keys(S.done).length}</span></div>
+  <div class="ex"><span>Текущая серия</span><span>${streakNow()} 🔥</span></div>
+  <div class="ex"><span>Рекорд серии</span><span>${S.best||0}</span></div>
+  <div class="sub" style="margin-top:10px">Достижения</div>
+  <div style="margin-top:6px">${ACH.map(a=>`<span class="ach" style="opacity:${ok[a[1]]?1:.4}">${a[0]} ${a[1]}</span>`).join(" ")}</div>
+  <div class="row" style="margin-top:14px"><button id="logoutBtn" style="flex:1">Выйти из аккаунта</button></div>`);
+ $("#logoutBtn").onclick=()=>{if(confirm("Выйти из аккаунта? Данные останутся на этом устройстве.")){fbAuth.signOut();$("#modal").innerHTML=""}};
+}
 function initAuth(){
- const b=$("#authBtn"),l=$("#loginBtn"),a=$("#authScreen");if(!fbAuth){a.style.display="none";b.style.display="none";build();refresh();checkAch(true);remind();if(!S.p.ob)onboard();return}
+ const b=$("#authBtn"),l=$("#loginBtn"),a=$("#authScreen");
+ const start=()=>{a.style.display="none";build();refresh();checkAch(true);remind();if(!S.p.ob)onboard()};
+ if(!fbAuth){b.style.display="none";return start()}
+ $("#skipBtn").onclick=start;
  fbAuth.getRedirectResult().catch(e=>alert("Не удалось войти: "+e.message));
- const onAuth=async u=>{
-  FB_USER=u;cloudOK=false;b.classList.toggle("on",!!u);b.title=u?"Аккаунт: "+(u.email||u.displayName||"")+" — нажмите, чтобы выйти":"Войти через Google";
-  if(u){try{await cloudPull();build();refresh();checkAch(true);remind();if(!S.p.ob)onboard()}catch(e){alert("Не удалось синхронизировать: "+e.message)}}
-  a.style.display=u?"none":"";
+ fbAuth.onAuthStateChanged(async u=>{
+  FB_USER=u;cloudOK=false;b.classList.toggle("on",!!u);b.title=u?"Профиль":"Войти через Google";
+  if(u){try{await cloudPull()}catch(e){console.warn(e)}start()}else a.style.display="";
+ });
+ l.onclick=()=>{
+  if(!/^https?:$/.test(location.protocol))return alert("Вход работает только когда страница открыта по адресу https://… (не из файла). Можно продолжить без входа.");
+  const p=new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(p).catch(e=>{if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code))fbAuth.signInWithRedirect(p);else if(e.code!="auth/popup-closed-by-user")alert("Не удалось войти: "+e.message)});
  };
- fbAuth.onAuthStateChanged(onAuth);
- l.onclick=()=>fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code))fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());else if(e.code!="auth/popup-closed-by-user")alert("Не удалось войти: "+e.message)});
+ b.onclick=()=>FB_USER?openProfile():(a.style.display="");
 }
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
@@ -151,7 +170,7 @@ function build(){
   if(shift(add(d,1)))w="easy";
   const dd=Math.round((d-st)/864e5);
   if(Math.floor(dd/7)%4==3)w=lower(w);
-  if(p.level=="Новичок"&&dd<14)w=cap(w,"medium");
+  if(p.level=="novice"&&dd<14)w=cap(w,"medium");
   let f;
   if(w=="easy")f=["Кардио","Кор и мобильность"][ne++%2];
   else if(p.goal=="Выносливость")f=ns++%2?"Всё тело":"Кардио";
@@ -161,7 +180,7 @@ function build(){
  S.plan=plan;save();
 }
 function workout(e,d){
- const r=rng(seed(d)*7+3),p=S.p,lv={"Новичок":0,"Средний":1,"Продвинутый":2}[p.level],ix=LV.indexOf(e.i),out=[];
+ const r=rng(seed(d)*7+3),p=S.p,lv={novice:0,medium:1,advanced:2}[p.level],ix=LV.indexOf(e.i),out=[];
  if(e.f=="Кардио"){
   if(e.i=="easy")out.push(["Бег трусцой / ходьба / велосипед",[28,35,42][lv]+" мин"]);
   else if(e.i=="medium")out.push(["Интервалы: 2 мин быстро / 2 мин легко",[4,5,6][lv]+" повт."]);
@@ -219,16 +238,16 @@ async function recipe(id){
 function openModal(h){$("#modal").innerHTML='<div onclick="if(event.target==this)this.parentNode.innerHTML=\'\'"><div class="box">'+h+'</div></div>'}
 
 /* ───── интерфейс ───── */
-let sel=today,vm=new Date(today.getFullYear(),today.getMonth(),1,12),shuf={},tok=0;
+let sel=today,vm=new Date(today.getFullYear(),today.getMonth(),1,12),shuf={},tok=0,touchStartY=0,touchHandled=false;
 function entry(d){const k=ymd(d);return S.done[k]?{t:"w",...S.done[k],done:1}:S.busy[k]?{t:"busy",...S.busy[k]}:S.plan[k]||{t:"none"}}
 function renderCal(){
  const e=entry(sel),lab=WD[sel.getDay()]+", "+sel.getDate()+" "+MG[sel.getMonth()];
  if(S.ui.c){$("#cal").innerHTML=`<div class="ch"><span style="text-align:left">📅 ${lab}</span><button data-c>⌃ Календарь</button></div>`;return}
  const f=mon(vm),cells=[];
- for(let i=0;i<42;i++){const d=add(f,i),e2=entry(d),k2=ymd(d),col=e2.t=="w"?CL[e2.i]:e2.t=="busy"?CL.busy:e2.t=="rest"?CL.rest:"transparent";
+ for(let i=0;i<42;i++){const d=add(f,i),e2=entry(d),k2=ymd(d),col=e2.t=="w"?CL[e2.i]:e2.t=="busy"&&e2.kind=="custom"?CL.custom:e2.t=="busy"?CL.busy:e2.t=="rest"?CL.rest:"transparent";
   const miss=e2.t=="w"&&d<today&&!e2.done;
   cells.push(`<button class="c${d.getMonth()!=vm.getMonth()?" o":""}${k2==ymd(today)?" t":""}${k2==ymd(sel)?" s":""}${e2.done?" d":""}" data-k="${k2}">${d.getDate()}<i style="background:${col};opacity:${miss?.3:1}"></i></button>`)}
- $("#cal").innerHTML=`<div class="ch"><button data-m="-1">‹</button><span>${MN[vm.getMonth()]} ${vm.getFullYear()}</span><button data-m="1">›</button><button data-c>свернуть ⌄</button></div><div class="cg">${WS.map(w=>'<span class="w">'+w+'</span>').join("")}${cells.join("")}</div><div class="sub" style="margin-top:6px;text-align:center">${lab}</div><div class="ca"><button data-a="busy">Занят</button><button data-a="free">Свободен</button><button data-a="done">${e.done?"↩ Снять":"✔ Готово"}</button></div>`;
+ $("#cal").innerHTML=`<div class="ch"><button data-m="-1">‹</button><span>${MN[vm.getMonth()]} ${vm.getFullYear()}</span><button data-m="1">›</button><button data-c>свернуть ⌄</button></div><div class="cg">${WS.map(w=>'<span class="w">'+w+'</span>').join("")}${cells.join("")}</div><div class="sub" style="margin-top:6px;text-align:center">${lab}</div><div class="ca"><button data-a="custom">Свое занятие</button><button data-a="busy">Занят</button><button data-a="free">Свободен</button><button data-a="done">${e.done?"↩ Снять":"✔ Готово"}</button></div>`;
 }
 function renderDay(){
  const d=sel,e=entry(d),k=ymd(d),isT=k==ymd(today),kind=e.t=="w"?e.i:"rest",t=++tok;
@@ -241,7 +260,7 @@ function renderDay(){
   h+=`<div class="glass card"><h2>Восстановление</h2><div class="sub">Не менее <b>${RH[e.i]} ч</b> до следующей тренировки. Сон 7–9 ч, вода 2–2,5 л, лёгкая растяжка вечером.${e.i=="hard"?" Белок в течение 2 часов после тренировки.":""}</div></div>`;
   if(!e.done)h+=prepCard(e.i,d);
  }else if(e.t=="busy"){
-  h+=`<div class="glass card"><span class="pill" style="background:${CL.busy}">${e.kind=="shift"?"Суточная смена":"Занят"}</span><h2 style="margin-top:8px">Тренировки нет</h2><div class="sub">${e.kind=="shift"?"Накануне — только лёгкая нагрузка, на следующий день после смены — отдых и сон. Еду возьмите в контейнерах.":esc(e.note||"")+" График остальных дней подстроен."}</div>${acts}</div>`;
+  h+=`<div class="glass card"><span class="pill" style="background:${e.kind=="custom"?CL.custom:CL.busy}">${e.kind=="shift"?"Суточная смена":e.kind=="custom"?esc(e.note||"Свое занятие"):"Занят"}</span><h2 style="margin-top:8px">Тренировки нет</h2><div class="sub">${e.kind=="shift"?"Накануне — только лёгкая нагрузка, на следующий день после смены — отдых и сон. Еду возьмите в контейнерах.":e.kind=="custom"?esc(e.note||""):esc(e.note||"")+" График остальных дней подстроен."}</div>${acts}</div>`;
  }else{
   const R={shift:"Восстановление после суточной смены: выспитесь, прогулка и растяжка.",rec:"Мышцы восстанавливаются после прошлой тренировки — именно сейчас они растут.",quota:"Недельная норма тренировок уже выполнена.",free:"День отдыха по плану: прогулка, мобильность, сон."};
   h+=`<div class="glass card"><span class="pill" style="background:${CL.rest}">Отдых</span><h2 style="margin-top:8px">День восстановления</h2><div class="sub">${e.t=="none"?"План на эту дату ещё не построен (горизонт — 5 недель).":R[e.r]||R.free}</div>${acts}</div>`;
@@ -273,6 +292,10 @@ function act(a){let nf=null;
  if(a=="done"){
   if(S.done[k])delete S.done[k];
   else{const e=S.plan[k];if(sel>today||!e||e.t!="w")return alert("Отметить можно только запланированную сегодняшнюю или прошедшую тренировку.");S.done[k]={i:e.i,f:e.f};nf=k}
+ }else if(a=="custom"){
+  if(sel<today)return alert("Прошедшие дни менять нельзя.");
+  if(S.done[k])return alert("В этот день уже отмечена тренировка.");
+  openCustomEventModal(k);
  }else{
   if(sel<today)return alert("Прошедшие дни менять нельзя.");
   if(S.done[k])return alert("В этот день уже отмечена тренировка.");
@@ -280,6 +303,14 @@ function act(a){let nf=null;
   else{const sh=confirm("Это суточная смена или занятость на весь день?\nОК — да (накануне будет лёгкая тренировка, после — отдых).\nОтмена — нет, занят лишь частично.");S.busy[k]={kind:sh?"shift":"busy",note:sh?"Суточная смена / весь день":(prompt("Чем занят этот день?","Занят")||"Занят")}}
  }
  build();refresh();if(nf)askFeedback(nf);
+}
+function openCustomEventModal(k){
+ openModal(`<h2>Свое занятие на ${esc(k)}</h2>
+  <label>Название<input id="ce_title" style="flex:1;width:auto" placeholder="Например, поход или бассейн"></label>
+  <label>Описание<textarea id="ce_note" style="flex:1;width:auto;height:60px;resize:vertical"></textarea></label>
+  <div class="row" style="margin-top:12px"><button id="ce_cancel" style="flex:1">Отмена</button><button id="ce_save" class="on" style="flex:1">Сохранить</button></div>`);
+ $("#ce_save").onclick=()=>{const t=$("#ce_title").value.trim(),n=$("#ce_note").value.trim();if(!t)return alert("Введите название.");S.busy[k]={kind:"custom",note:t+(n?": "+n:"")};$("#modal").innerHTML="";build();refresh()};
+ $("#ce_cancel").onclick=()=>{$("#modal").innerHTML=""};
 }
 $("#main").addEventListener("click",e=>{
  const b=e.target.closest("[data-a]");if(b)return act(b.dataset.a);
@@ -290,7 +321,13 @@ $("#main").addEventListener("click",e=>{
  const ad=e.target.closest("[data-add]");if(ad)return addProd(ad.dataset.add);
  const dl=e.target.closest("[data-del]");if(dl){const[mm,i]=dl.dataset.del.split("|"),l=getL(sel);l.m[mm].splice(+i,1);setL(sel,l);renderDay()}
 });
+$("#cal").addEventListener("touchstart",e=>{if(e.touches.length===1){touchStartY=e.touches[0].clientY;touchHandled=false}},{passive:true});
+$("#cal").addEventListener("touchend",e=>{
+ if(!touchHandled&&e.changedTouches.length===1){const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dy)>50){touchHandled=true;vm=new Date(vm.getFullYear(),vm.getMonth()+(dy>0?-1:1),1,12);renderCal()}}
+});
 $("#cal").addEventListener("click",e=>{
+ if(touchHandled)return;
  const a=e.target.closest("[data-a]");if(a)return act(a.dataset.a);
  if(e.target.closest("[data-c]")){S.ui.c^=1;save();return renderCal()}
  const m=e.target.closest("[data-m]");if(m){vm=new Date(vm.getFullYear(),vm.getMonth()+ +m.dataset.m,1,12);return renderCal()}
@@ -301,7 +338,7 @@ $("#st").onclick=()=>{
  const p=S.p,o=(a,v)=>a.map(x=>`<option${x==v?" selected":""}>${x}</option>`).join(""),LG={ru:"Русский",uk:"Українська",de:"Deutsch",es:"Español",fr:"Français",en:"English (оригинал)"};
  openModal(`<h2>Профиль и цели</h2>
  <label>Цель<select id="p_goal">${o(Object.keys(REPS),p.goal)}</select></label>
- <label>Уровень<select id="p_level">${o(["Новичок","Средний","Продвинутый"],p.level)}</select></label>
+ <label>Уровень<select id="p_level">${LEVEL_BASE.map(lv=>`<option value="${lv}"${lv==p.level?" selected":""}>${levelLabel(lv,p.sex)}</option>`).join("")}</select></label>
  <label>Тренировок в неделю<input id="p_pw" type="number" min="1" max="5" value="${p.pw}"></label>
  <label>Пол<select id="p_sex">${o(["М","Ж"],p.sex)}</select></label>
  <label>Возраст<input id="p_age" type="number" value="${p.age}"></label>
@@ -323,7 +360,7 @@ $("#st").onclick=()=>{
  $("#p_ob").onclick=onboard;
  $("#p_ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="fitcoach-backup.json";a.click()};
  $("#p_im").onclick=()=>$("#p_f").click();
- $("#p_f").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.ui=Object.assign({c:0,t:"plan"},j.ui);$("#modal").innerHTML="";build();refresh()}catch(x){alert("Не удалось прочитать файл копии.")}};
+ $("#p_f").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());S=Object.assign(def(),j);S.p=Object.assign(def().p,j.p);S.p.level=normLv(j.p&&j.p.level);S.ui=Object.assign({c:0,t:"plan"},j.ui);$("#modal").innerHTML="";build();refresh()}catch(x){alert("Не удалось прочитать файл копии.")}};
 };
 /* ───── питание: дневник, баланс, Open Food Facts ───── */
 const MEALS_=["Завтрак","Обед","Ужин","Перекус"],OFF="https://world.openfoodfacts.org/";
@@ -419,13 +456,6 @@ async function showExerciseDemo(name){
   demoCache[name]=it.gifUrl;try{localStorage.fcdemos=JSON.stringify(demoCache)}catch(e){}view(it.gifUrl,"");
  }catch(e){view("","Анимацию загрузить не удалось — используйте видео с техникой.")}
 }
-$("#authBtn").onclick=async()=>{
- if(!fbAuth)return;
- if(FB_USER){if(confirm("Выйти из аккаунта? Данные останутся на этом устройстве."))fbAuth.signOut();return}
- if(!/^https?:$/.test(location.protocol))return alert("Вход работает только когда страница открыта по адресу https://… (не из файла). Разместите приложение на хостинге.");
- const p=new firebase.auth.GoogleAuthProvider();
- try{await fbAuth.signInWithPopup(p)}catch(e){if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code))fbAuth.signInWithRedirect(p);else if(e.code!="auth/popup-closed-by-user")alert("Не удалось войти: "+e.message)}
-};
 /* ───── настройка целей (онбординг) ───── */
 const PAL=[[1.2,"Сидячий образ жизни"],[1.375,"Лёгкая активность"],[1.55,"Умеренная активность"],[1.725,"Высокая активность"]],ALG=["Лактоза","Глютен","Орехи","Яйца","Морепродукты"];
 const AL={"Лактоза":["milk","cream","cheese","butter","yogurt","yoghurt"],"Глютен":["flour","bread","pasta","wheat","noodle","spaghetti","couscous"],"Орехи":["nut","almond","walnut","cashew","pistachio","hazelnut"],"Яйца":["egg"],"Морепродукты":["shrimp","prawn","fish","salmon","crab","squid","mussel","clam","tuna","cod"]};
