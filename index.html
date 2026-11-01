@@ -558,17 +558,25 @@ function cookPick(){
 function cookDish(name,nu,use,custom){
  use=(use||[]).filter(x=>S.fridge[x.k]);
  const num=id=>parseFloat(String($(id).value).replace(",","."))||0;
- openModal(`<h2>🍲 ${custom?'<input id="cn" placeholder="Название блюда" style="width:100%">':esc(name)}</h2><div class="sub">${custom?"Впишите порции и сколько продуктов ушло — КБЖУ порции посчитаю по продуктам.":"Впишите порции — продукты посчитаю сам. Или впишите потраченные продукты — посчитаю порции."}</div><label>Порций приготовлено<input id="cp" type="number" min="1" step="1" value="4"></label>${use.length?'<div class="sub" style="margin-top:6px">Потрачено из холодильника:</div>'+use.map((x,i)=>`<label><span>${esc(x.k)}<br><small class="sub" id="cs${i}">есть ${fmtQ(S.fridge[x.k],fU(x.k))}</small></span><span><input id="cu${i}" type="number" min="0" step="any" value="0" style="width:90px"> ${fU(x.k)}</span></label>`).join(""):'<div class="sub">Подходящих продуктов в холодильнике нет — добавлю только порции.</div>'}${custom?'<div class="sub" style="margin-top:6px">КБЖУ на порцию (если продукты не указаны):</div><div class="row">'+["ккал","Б","Ж","У"].map((x,i)=>`<input id="cm${i}" type="number" step="any" placeholder="${x}" style="width:22%">`).join("")+"</div>":""}<div class="row"><button id="ck_ok" class="on" style="flex:1;min-height:44px">Поставить в холодильник</button></div>`);
+ openModal(`<h2>🍲 ${custom?'<input id="cn" placeholder="Название блюда" style="width:100%">':esc(name)}</h2><div class="sub">${custom?"Впишите порции и сколько продуктов ушло — КБЖУ порции посчитаю по продуктам.":"Впишите порции — продукты посчитаю сам. Или впишите потраченные продукты — посчитаю порции."}</div><label>Порций приготовлено<input id="cp" type="number" min="1" step="1" value="4"></label>${use.length?'<div class="sub" style="margin-top:6px">Потрачено из холодильника:</div>'+use.map((x,i)=>`<label><span>${esc(x.k)}<br><small class="sub" id="cs${i}">есть ${fmtQ(S.fridge[x.k],fU(x.k))}</small></span><span><input id="cu${i}" type="number" min="0" step="any" value="0" style="width:90px"> ${fU(x.k)}</span></label>`).join(""):'<div class="sub">Подходящих продуктов в холодильнике нет — добавлю только порции.</div>'}${custom?'<div class="sub" style="margin-top:6px">КБЖУ на порцию (считается по добавленным продуктам; можно ввести вручную):</div><div class="row">'+["ккал","Б","Ж","У"].map((x,i)=>`<input id="cm${i}" type="number" step="any" placeholder="${x}" style="width:22%">`).join("")+'</div><div class="sub" id="cmt"></div>':""}<div class="row"><button id="ck_ok" class="on" style="flex:1;min-height:44px">Поставить в холодильник</button></div>`);
  const chk=()=>use.forEach((x,i)=>{const v=num("#cu"+i),el=$("#cs"+i),q=S.fridge[x.k];el.textContent="есть "+fmtQ(q,fU(x.k))+(v>q+.01?" — не хватает "+r1(v-q):"");el.style.color=v>q+.01?"#f87171":""});
  const fill=skip=>{const p=num("#cp");use.forEach((x,i)=>{if(i!==skip&&x.v>0)$("#cu"+i).value=r1(x.v*p)});chk()};
+ let man=false,auto=false;
+ const calc=()=>{if(!custom)return;const p=Math.max(1,Math.round(num("#cp"))),t={k:0,p:0,f:0,c:0},miss=[];let hit=0;
+  use.forEach((x,i)=>{const v=num("#cu"+i);if(!(v>0))return;const pp=per100(x.k);if(pp){const g=toG(x.k,v)/100;t.k+=pp.k*g;t.p+=pp.p*g;t.f+=pp.f*g;t.c+=pp.c*g;hit++}else miss.push(x.k)});
+  const ks=["k","p","f","c"];
+  if(hit&&!man){ks.forEach((key,j)=>$("#cm"+j).value=Math.round(t[key]/p));auto=true}
+  else if(!hit&&auto&&!man){ks.forEach((key,j)=>$("#cm"+j).value="");auto=false}
+  $("#cmt").innerHTML=(hit?"Всего по продуктам: "+Math.round(t.k)+" ккал · Б "+r1(t.p)+" · Ж "+r1(t.f)+" · У "+r1(t.c)+" → ÷ "+p+" порц.":"")+(miss.length?'<br><span style="color:#f87171">Нет данных КБЖУ: '+esc(miss.join(", "))+"</span>":"")};
+ if(custom){[0,1,2,3].forEach(j=>$("#cm"+j).oninput=()=>{man=true});$("#cp").oninput=()=>{man=false;calc()}}
  if(!custom){fill();$("#cp").oninput=()=>fill()}chk();
- use.forEach((x,i)=>$("#cu"+i).oninput=()=>{chk();if(custom||!(x.v>0))return;$("#cp").value=Math.max(1,Math.round(num("#cu"+i)/x.v));fill(i)});
+ use.forEach((x,i)=>$("#cu"+i).oninput=()=>{chk();if(custom){man=false;calc();return}if(!(x.v>0))return;$("#cp").value=Math.max(1,Math.round(num("#cu"+i)/x.v));fill(i)});
  $("#ck_ok").onclick=()=>{
   const p=Math.round(num("#cp"));if(!(p>=1))return alert("Укажите число порций.");
   let nm=name,n=nu;
   if(custom){nm=$("#cn").value.trim();if(!nm)return alert("Введите название блюда.");
    const t={k:0,p:0,f:0,c:0};let hit=0;use.forEach((x,i)=>{const v=num("#cu"+i),pp=per100(x.k);if(v>0&&pp){const g=toG(x.k,v)/100;t.k+=pp.k*g;t.p+=pp.p*g;t.f+=pp.f*g;t.c+=pp.c*g;hit++}});
-   n=hit?{k:Math.round(t.k/p),p:Math.round(t.p/p),f:Math.round(t.f/p),c:Math.round(t.c/p)}:{k:num("#cm0"),p:num("#cm1"),f:num("#cm2"),c:num("#cm3")}}
+   n=(hit&&!man)?{k:Math.round(t.k/p),p:Math.round(t.p/p),f:Math.round(t.f/p),c:Math.round(t.c/p)}:{k:num("#cm0"),p:num("#cm1"),f:num("#cm2"),c:num("#cm3")}}
   use.forEach((x,i)=>{const v=num("#cu"+i);if(v>0)fridgeTake(x.k,v)});
   const D=DS(),ex=D.find(x=>x.name==nm);if(ex)ex.p=r1(ex.p+p);else D.push({id:Date.now(),name:nm,nu:n,p});
   save();$("#modal").innerHTML="";renderDay()};
@@ -582,7 +590,7 @@ function dishModal(id,meal){
  document.querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{const p=num();if(!(p>0))return alert("Введите число порций.");if(p>D.p+.001)return alert("Столько порций нет.");
   const l=getL(sel),m=b.dataset.dm;(l.m[m]=l.m[m]||[]).push({n:D.name,g:r1(p)+" порц.",k:D.nu.k*p,p:D.nu.p*p,f:D.nu.f*p,c:D.nu.c*p});setL(sel,l);use_(p)});
  $("#dg").onclick=()=>{const p=num();if(!(p>0))return alert("Введите число порций.");use_(Math.min(p,D.p))};
- $("#dx").onclick=()=>{if(confirm("Удалить «"+D.name+"» из холодильника?")){rm();save();$("#modal").innerHTML="";renderDay()}};
+ {const dx=$("#dx");let tm=0;dx.onclick=()=>{if(!dx.dataset.ok){dx.dataset.ok="1";dx.textContent="Точно удалить?";dx.classList.add("on");tm=setTimeout(()=>{delete dx.dataset.ok;dx.textContent="Удалить блюдо";dx.classList.remove("on")},4000);return}clearTimeout(tm);rm();save();$("#modal").innerHTML="";renderDay()}}
 }
 function eatPick(meal){
  const f=fridgeList(),ds=DS().filter(x=>x.p>0);if(!f.length&&!ds.length)return alert("Холодильник пуст — сначала добавьте продукты.");
@@ -724,8 +732,8 @@ function fixUnits(){let ch=0;Object.keys(S.fridge||{}).forEach(k=>{S.fridgeU=S.f
 function foodView(d,kind,e){fixUnits();
  const c=calc(S.p),kc=Math.round(c.kc*({hard:1.05,medium:1.02,easy:1,rest:.97}[kind]||1)),l=getL(d),t=tot(l),wt=Math.round(S.p.w*35/250)*250;
  const rg=(v,mx,col,lab,sb)=>`<div style="text-align:center"><div class="rg" style="--v:${Math.min(100,Math.round(v/mx*100))};--c:${col}"><span><b>${lab}</b></span></div><div class="sub">${sb}</div></div>`;
- return `<div class="glass card"><h2>Баланс дня</h2><div class="row" style="justify-content:space-around">${rg(t.k,kc,"#34d399",Math.round(t.k),"из "+kc+" ккал")}${rg(l.w,wt,"#60a5fa",l.w,"из "+wt+" мл")}${rg(t.p,c.pr,"#f87171",Math.round(t.p),"белок, г")}</div>
- <div class="kp"><div><b>${Math.round(t.p)}/${c.pr}</b>Белки, г</div><div><b>${Math.round(t.f)}/${c.f}</b>Жиры, г</div><div><b>${Math.round(t.c)}/${c.c}</b>Углеводы, г</div></div>
+ return `<div class="glass card"><h2>Баланс дня</h2><div style="display:grid;grid-template-columns:repeat(2,1fr);justify-items:center;gap:6px">${rg(t.k,kc,"#34d399",Math.round(t.k),"из "+kc+" ккал")}${rg(l.w,wt,"#60a5fa",l.w,"жидкость, из "+wt+" мл")}</div>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);justify-items:center;gap:6px;margin-top:12px">${rg(t.p,c.pr,"#f87171",Math.round(t.p),"белки, из "+c.pr+" г")}${rg(t.f,c.f,"#fbbf24",Math.round(t.f),"жиры, из "+c.f+" г")}${rg(t.c,c.c,"#a78bfa",Math.round(t.c),"углеводы, из "+c.c+" г")}</div>
  <div class="row"><button data-w="250" style="flex:1">💧 +250 мл</button><button data-w="-250">−</button></div></div>`
  +fridgeCard()+(e.t!="none"?`<div class="glass card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>${fridgeList().length?"Из вашего холодильника":"Идеи, что приготовить"}</h2><button id="rf">↻</button></div><div id="ml" class="sub sk">Загружаю рецепты…</div><div class="sub" id="src" style="margin-top:8px"></div></div>`:"")
  +menuCard(d)
