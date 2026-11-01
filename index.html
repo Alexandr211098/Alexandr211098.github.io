@@ -1,6 +1,19 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<script>
+/* автообновление: при каждом открытии сверяем версию с сервером и перезагружаем, если файл новее */
+const FC_BUILD="20261101000452";
+(function(){try{
+ if(!/^https?:/.test(location.protocol))return;
+ const u=new URL(location.href);u.searchParams.delete("_fc");u.searchParams.set("_fc",Date.now());
+ fetch(u.toString(),{cache:"no-store"}).then(r=>r.ok?r.text():"").then(t=>{
+  const m=/const FC_BUILD="([^"]+)"/.exec(t);
+  if(m&&m[1]!==FC_BUILD&&sessionStorage.fcRl!==m[1]){sessionStorage.fcRl=m[1];location.replace(u.toString()+location.hash)}
+ }).catch(()=>{});
+}catch(e){}})();
+</script>
 <title>FitCoach</title>
 <meta name="theme-color" content="#cfe6ff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="FitCoach">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
